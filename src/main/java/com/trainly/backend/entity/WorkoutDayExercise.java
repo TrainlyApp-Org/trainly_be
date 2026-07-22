@@ -2,6 +2,8 @@ package com.trainly.backend.entity;
 
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -30,7 +32,8 @@ public class WorkoutDayExercise {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "workout_day_id")
+    @JoinColumn(name = "workout_day_id", nullable = false)
+    @JsonIgnore
     private WorkoutDay workoutDay;
 
     @ManyToOne(fetch = FetchType.LAZY)

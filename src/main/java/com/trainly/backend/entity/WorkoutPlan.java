@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "workout_plan", schema = "public")
+@Table(name = "workout_plans", schema = "public")
 @Getter
 @Setter
 @Builder
@@ -22,7 +22,7 @@ import java.util.UUID;
 public class WorkoutPlan {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -33,6 +33,7 @@ public class WorkoutPlan {
 
     private String description;
 
+    @Column(nullable = false, unique = true)
     private UUID shareId;
 
     private Instant createdAt;
@@ -42,4 +43,11 @@ public class WorkoutPlan {
                orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<WorkoutDay> days = new ArrayList<>();
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
 }

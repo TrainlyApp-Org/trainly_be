@@ -29,7 +29,9 @@ public class SecurityConfig {
                         // endpoint pubblici
                         .requestMatchers(
                                 "/api/v1/auth/**",
-                                "/api/v1/exercises/categories"
+                                "/api/v1/exercises/categories",
+                                "/api/v1/workouts/public/**",
+                                "/error"
                         ).permitAll()
 
                         // tutto il resto richiede JWT
