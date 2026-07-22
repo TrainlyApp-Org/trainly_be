@@ -18,6 +18,7 @@ import com.trainly.backend.repository.WorkoutDayExerciseRepository;
 import com.trainly.backend.repository.WorkoutDayRepository;
 import com.trainly.backend.repository.WorkoutPlanRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
@@ -293,5 +294,14 @@ public class WorkoutPlanService {
                         );
 
                 return mapToDetailsResponse(workoutPlan);
+        }
+
+        @Transactional
+        public void deleteWorkout(UUID id) {
+                if (!workoutPlanRepository.existsById(id)) {
+                        throw new EntityNotFoundException("Workout not found");
+                }
+
+                workoutPlanRepository.deleteById(id);
         }
 }
