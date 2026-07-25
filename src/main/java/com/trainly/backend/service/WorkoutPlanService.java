@@ -1,7 +1,7 @@
 package com.trainly.backend.service;
 
 import com.trainly.backend.dto.ShareWorkoutResponse;
-import com.trainly.backend.dto.WorkoutCreateRequest;
+import com.trainly.backend.dto.WorkoutPlanRequest;
 import com.trainly.backend.dto.WorkoutDayRequest;
 import com.trainly.backend.dto.WorkoutDayResponse;
 import com.trainly.backend.dto.WorkoutExerciseRequest;
@@ -61,7 +61,7 @@ public class WorkoutPlanService {
 
 
         @Transactional
-        public WorkoutPlan create(UUID profileId, WorkoutCreateRequest request) {
+        public WorkoutPlan create(UUID profileId, WorkoutPlanRequest request) {
 
 
                 WorkoutPlan plan = new WorkoutPlan();
@@ -125,30 +125,6 @@ public class WorkoutPlanService {
                 return savedPlan;
         }
 
-
-
-        @Transactional
-        public WorkoutPlan update(
-                UUID id,
-                WorkoutPlan updated
-        ){
-
-                WorkoutPlan existing =
-                        getById(id);
-
-
-                existing.setName(updated.getName());
-
-                existing.setDescription(
-                        updated.getDescription()
-                );
-
-
-                return workoutPlanRepository.save(existing);
-        }
-
-
-
         public WorkoutPlan getById(UUID id){
 
                 return workoutPlanRepository.findById(id)
@@ -175,91 +151,7 @@ public class WorkoutPlanService {
                         );
 
 
-                return mapToDetailsResponse(workoutPlan);
-        }
-
-        private WorkoutPlanDetailsResponse mapToDetailsResponse(WorkoutPlan workoutPlan)
-        {
-
-                WorkoutPlanDetailsResponse response =
-                        new WorkoutPlanDetailsResponse();
-
-
-                response.setId(workoutPlan.getId());
-                response.setName(workoutPlan.getName());
-                response.setDescription(workoutPlan.getDescription());
-                response.setShareId(workoutPlan.getShareId());
-                response.setCreatedAt(workoutPlan.getCreatedAt());
-
-
-                List<WorkoutDayResponse> days =
-                        workoutPlan.getDays()
-                        .stream()
-                        .map(day -> {
-
-                                WorkoutDayResponse dayResponse =
-                                        new WorkoutDayResponse();
-
-
-                                dayResponse.setId(day.getId());
-                                dayResponse.setName(day.getName());
-                                dayResponse.setDayOrder(day.getOrderIndex());
-
-
-                                List<WorkoutExerciseResponse> exercises =
-                                        day.getExercises()
-                                        .stream()
-                                        .map(item -> {
-
-                                        WorkoutExerciseResponse exercise =
-                                                new WorkoutExerciseResponse();
-
-
-                                        exercise.setId(item.getId());
-
-                                        exercise.setExerciseId(
-                                                item.getExercise().getId()
-                                        );
-
-                                        exercise.setName(
-                                                item.getExercise().getName()
-                                        );
-
-                                        exercise.setDescription(
-                                                item.getExercise().getDescription()
-                                        );
-
-                                        exercise.setSets(
-                                                item.getSets()
-                                        );
-
-                                        exercise.setReps(
-                                                item.getReps()
-                                        );
-
-                                        exercise.setRestTime(
-                                                item.getRestTime()
-                                        );
-
-
-                                        return exercise;
-
-                                        })
-                                        .toList();
-
-
-                                dayResponse.setExercises(exercises);
-
-                                return dayResponse;
-
-                        })
-                        .toList();
-
-
-                response.setDays(days);
-
-
-                return response;
+                return WorkoutPlanDetailsResponse.mapToDetailsResponse(workoutPlan);
         }
 
         @Transactional
@@ -293,7 +185,7 @@ public class WorkoutPlanService {
                                 new RuntimeException("Workout not found")
                         );
 
-                return mapToDetailsResponse(workoutPlan);
+                return WorkoutPlanDetailsResponse.mapToDetailsResponse(workoutPlan);
         }
 
         @Transactional
@@ -303,5 +195,59 @@ public class WorkoutPlanService {
                 }
 
                 workoutPlanRepository.deleteById(id);
+        }
+
+        @Transactional
+        public WorkoutPlanDetailsResponse update(UUID workoutId, UUID profileId, WorkoutPlanRequest request) {
+
+                WorkoutPlan plan = workoutPlanRepository.findById(workoutId)
+                        .orElseThrow(() -> new RuntimeException("Workout not found"));
+
+                if (!plan.getProfile().getId().equals(profileId)) {
+                        throw new RuntimeException("Unauthorized");
+                }
+
+                plan.setName(request.getName());
+                plan.setDescription(request.getDescription());
+
+                // Elimina giorni esistenti
+                plan.getDays().clear();
+
+                int dayOrder = 0;
+
+                for (WorkoutDayRequest dayRequest : request.getDays()) {
+
+                        WorkoutDay day = new WorkoutDay();
+                        day.setWorkoutPlan(plan);
+                        day.setName(dayRequest.getName());
+                        day.setOrderIndex(dayOrder++);
+
+                        int exerciseOrder = 0;
+
+                        for (WorkoutExerciseRequest exRequest : dayRequest.getExercises()) {
+
+                        WorkoutDayExercise exercise = new WorkoutDayExercise();
+
+                        exercise.setWorkoutDay(day);
+
+                        exercise.setExercise(
+                                exerciseRepository.findById(exRequest.getExerciseId())
+                                        .orElseThrow(() -> new RuntimeException("Exercise not found"))
+                        );
+
+                        exercise.setSets(exRequest.getSets());
+                        exercise.setReps(exRequest.getReps());
+                        exercise.setRestTime(exRequest.getRestTime());
+                        exercise.setOrderIndex(exerciseOrder++);
+
+                        day.getExercises().add(exercise);
+                        }
+
+                        plan.getDays().add(day);
+                }
+
+                WorkoutPlan saved = workoutPlanRepository.save(plan);
+
+                return WorkoutPlanDetailsResponse.mapToDetailsResponse(saved);
         }
 }

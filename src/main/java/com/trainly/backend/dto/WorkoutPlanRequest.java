@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class WorkoutCreateRequest {
+public class WorkoutPlanRequest {
 
     private String name;
 
