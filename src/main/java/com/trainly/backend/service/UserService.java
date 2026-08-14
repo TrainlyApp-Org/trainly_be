@@ -3,6 +3,7 @@ package com.trainly.backend.service;
 import com.trainly.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -111,6 +112,46 @@ public class UserService {
         );
 
 
+        return response;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> refreshSession(String refreshToken) {
+        Map<String, Object> supabaseResponse = restClient.post()
+                .uri("/token?grant_type=refresh_token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("refresh_token", refreshToken))
+                .retrieve()
+                .body(Map.class);
+
+        if (supabaseResponse == null || supabaseResponse.get("access_token") == null) {
+            throw new IllegalArgumentException("Unable to refresh session");
+        }
+
+        return supabaseResponse;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> changePassword(
+            String accessToken, String currentPassword, String newPassword) {
+        if (currentPassword.equals(newPassword)) {
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+
+        Map<String, Object> response = restClient.put()
+                .uri("/user")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "current_password", currentPassword,
+                        "password", newPassword
+                ))
+                .retrieve()
+                .body(Map.class);
+
+        if (response == null) {
+            throw new IllegalArgumentException("Unable to change password");
+        }
         return response;
     }
 }

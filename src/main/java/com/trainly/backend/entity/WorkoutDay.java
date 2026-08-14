@@ -39,5 +39,6 @@ public class WorkoutDay {
                cascade = CascadeType.ALL,
                orphanRemoval = true)
     @OrderBy("orderIndex ASC")
+    @Builder.Default
     private List<WorkoutDayExercise> exercises = new ArrayList<>();
 }

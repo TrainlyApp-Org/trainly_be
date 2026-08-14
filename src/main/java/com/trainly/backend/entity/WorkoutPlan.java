@@ -33,7 +33,7 @@ public class WorkoutPlan {
 
     private String description;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private UUID shareId;
 
     private Instant createdAt;
@@ -42,6 +42,7 @@ public class WorkoutPlan {
                cascade = CascadeType.ALL,
                orphanRemoval = true)
     @OrderBy("orderIndex ASC")
+    @Builder.Default
     private List<WorkoutDay> days = new ArrayList<>();
 
     @PrePersist

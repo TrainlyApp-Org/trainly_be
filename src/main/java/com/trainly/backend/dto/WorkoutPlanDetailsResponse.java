@@ -21,6 +21,8 @@ public class WorkoutPlanDetailsResponse {
 
     private String description;
 
+    private String creatorName;
+
     private UUID shareId;
 
     private Instant createdAt;
@@ -37,6 +39,11 @@ public class WorkoutPlanDetailsResponse {
             response.setId(workoutPlan.getId());
             response.setName(workoutPlan.getName());
             response.setDescription(workoutPlan.getDescription());
+            String creatorName = workoutPlan.getProfile().getFullName();
+            if (creatorName == null || creatorName.isBlank()) {
+                    creatorName = workoutPlan.getProfile().getUsername();
+            }
+            response.setCreatorName(creatorName);
             response.setShareId(workoutPlan.getShareId());
             response.setCreatedAt(workoutPlan.getCreatedAt());
 

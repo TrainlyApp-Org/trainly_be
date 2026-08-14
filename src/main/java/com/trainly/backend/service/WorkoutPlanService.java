@@ -17,6 +17,11 @@ import com.trainly.backend.repository.ProfileRepository;
 import com.trainly.backend.repository.WorkoutDayExerciseRepository;
 import com.trainly.backend.repository.WorkoutDayRepository;
 import com.trainly.backend.repository.WorkoutPlanRepository;
+import com.trainly.backend.repository.SharedWorkoutSetRepository;
+import com.trainly.backend.dto.SaveSharedWorkoutSetRequest;
+import com.trainly.backend.dto.SharedWorkoutSetResponse;
+import com.trainly.backend.entity.SharedWorkoutSet;
+import com.trainly.backend.exception.WorkoutPlanLimitExceededException;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,12 +40,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class WorkoutPlanService {
 
+        private static final long FREE_WORKOUT_PLAN_LIMIT = 5;
 
         private final WorkoutPlanRepository workoutPlanRepository;
         private final ProfileRepository profileRepository;
         private final ExerciseRepository exerciseRepository;
         private final WorkoutDayRepository workoutDayRepository;
         private final WorkoutDayExerciseRepository workoutDayExerciseRepository;
+        private final SharedWorkoutSetRepository sharedWorkoutSetRepository;
 
 
 
@@ -63,16 +71,17 @@ public class WorkoutPlanService {
         @Transactional
         public WorkoutPlan create(UUID profileId, WorkoutPlanRequest request) {
 
+                Profile profile = profileRepository.findById(profileId)
+                        .orElseThrow(() -> new RuntimeException("Profile not found"));
+
+                if (!profile.isPremium()
+                        && workoutPlanRepository.countByProfileId(profileId) >= FREE_WORKOUT_PLAN_LIMIT) {
+                        throw new WorkoutPlanLimitExceededException();
+                }
 
                 WorkoutPlan plan = new WorkoutPlan();
 
-                plan.setProfile(
-                        profileRepository.findById(profileId)
-                                .orElseThrow(() ->
-                                        new RuntimeException(
-                                                "Profile not found"
-                                        ))
-                );
+                plan.setProfile(profile);
 
                 plan.setName(request.getName());
                 plan.setDescription(request.getDescription());
@@ -186,6 +195,51 @@ public class WorkoutPlanService {
                         );
 
                 return WorkoutPlanDetailsResponse.mapToDetailsResponse(workoutPlan);
+        }
+
+        @Transactional
+        public SharedWorkoutSetResponse savePublicWorkoutSet(
+                UUID shareId, SaveSharedWorkoutSetRequest request) {
+                WorkoutPlan plan = workoutPlanRepository.findByShareId(shareId)
+                        .orElseThrow(() -> new RuntimeException("Workout not found"));
+
+                boolean dayBelongsToPlan = plan.getDays().stream()
+                        .anyMatch(day -> day.getId().equals(request.getDayId()));
+                if (!dayBelongsToPlan || !workoutDayExerciseRepository
+                        .existsByWorkoutDayIdAndExerciseId(request.getDayId(), request.getExerciseId())) {
+                        throw new IllegalArgumentException("Exercise not found in the shared workout day");
+                }
+
+                SharedWorkoutSet value = sharedWorkoutSetRepository
+                        .findByShareIdAndWorkoutDayIdAndExerciseIdAndSetIndex(
+                                shareId, request.getDayId(), request.getExerciseId(), request.getSetIndex())
+                        .orElseGet(SharedWorkoutSet::new);
+                value.setShareId(shareId);
+                value.setWorkoutDayId(request.getDayId());
+                value.setExerciseId(request.getExerciseId());
+                value.setSetIndex(request.getSetIndex());
+                value.setWeight(request.getWeight());
+                value.setReps(request.getReps());
+                value.setUpdatedAt(OffsetDateTime.now());
+                return SharedWorkoutSetResponse.from(sharedWorkoutSetRepository.save(value));
+        }
+
+        @Transactional(readOnly = true)
+        public List<SharedWorkoutSetResponse> getPublicWorkoutSetValues(UUID shareId, UUID dayId) {
+                WorkoutPlan plan = workoutPlanRepository.findByShareId(shareId)
+                        .orElseThrow(() -> new RuntimeException("Workout not found"));
+
+                boolean dayBelongsToPlan = plan.getDays().stream()
+                        .anyMatch(day -> day.getId().equals(dayId));
+                if (!dayBelongsToPlan) {
+                        throw new IllegalArgumentException("Workout day not found in this shared workout");
+                }
+
+                return sharedWorkoutSetRepository
+                        .findByShareIdAndWorkoutDayIdOrderByExerciseIdAscSetIndexAsc(shareId, dayId)
+                        .stream()
+                        .map(SharedWorkoutSetResponse::from)
+                        .toList();
         }
 
         @Transactional

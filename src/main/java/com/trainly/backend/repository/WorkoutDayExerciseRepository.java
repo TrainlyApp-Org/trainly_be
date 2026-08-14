@@ -15,4 +15,6 @@ public interface WorkoutDayExerciseRepository extends JpaRepository<WorkoutDayEx
 
     void deleteByWorkoutDayId(UUID workoutDayId);
 
+    boolean existsByWorkoutDayIdAndExerciseId(UUID workoutDayId, UUID exerciseId);
+
 }

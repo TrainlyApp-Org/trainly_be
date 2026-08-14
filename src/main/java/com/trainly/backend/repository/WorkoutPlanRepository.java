@@ -15,6 +15,8 @@ public interface WorkoutPlanRepository extends JpaRepository<WorkoutPlan, UUID>{
 
     List<WorkoutPlan> findByProfileId(UUID profileId);
 
+    long countByProfileId(UUID profileId);
+
     Optional<WorkoutPlan> findByShareId(UUID shareId);
 
     @EntityGraph(attributePaths = {

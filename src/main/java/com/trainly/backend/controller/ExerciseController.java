@@ -62,10 +62,10 @@ public class ExerciseController {
      */
     @PostMapping
     public ResponseEntity<Map<String,Object>> createCustomExercise(
-            @RequestHeader("X-User-Id") UUID userId,
+            @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateExerciseRequest request
     ) {
-
+        UUID userId = currentUser.getId(jwt);
 
         ExerciseDto exercise =
                 exerciseService.createCustomExercise(

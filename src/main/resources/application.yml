@@ -4,7 +4,7 @@ server:
 
 spring:
   config:
-    import: optional:file:.env[.properties]
+    import: optional:file:.env[.properties],optional:file:trainly_be/.env[.properties]
   application:
     name: trainly-backend
   security:
@@ -44,6 +44,9 @@ supabase:
   anon-key: ${SUPABASE_ANON_KEY}
   jwt:
     jwk-uri: https://qdluegpxqgtwkihqisxa.supabase.co/auth/v1/.well-known/jwks.json
+
+app:
+  admin-user-ids: ${ADMIN_USER_IDS:}
 
 logging:
   level:

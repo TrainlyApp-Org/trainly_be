@@ -35,6 +35,14 @@ public class Profile {
     private String avatarUrl;
 
     @Builder.Default
+    @Column(name = "is_premium", nullable = false)
+    private boolean premium = false;
+
+    @Builder.Default
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt = OffsetDateTime.now();
+
+    @Builder.Default
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 

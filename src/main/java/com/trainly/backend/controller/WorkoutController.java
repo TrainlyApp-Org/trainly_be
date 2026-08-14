@@ -7,7 +7,7 @@ import java.util.UUID;
 
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.trainly.backend.dto.RegisterDto;
 import com.trainly.backend.dto.ShareWorkoutResponse;
 import com.trainly.backend.dto.WorkoutPlanRequest;
 import com.trainly.backend.dto.WorkoutPlanResponse;
@@ -26,6 +26,9 @@ import com.trainly.backend.entity.WorkoutPlan;
 import com.trainly.backend.security.CurrentUser;
 import com.trainly.backend.service.WorkoutPlanService;
 import com.trainly.backend.dto.WorkoutPlanDetailsResponse;
+import com.trainly.backend.dto.SaveSharedWorkoutSetRequest;
+import com.trainly.backend.dto.SharedWorkoutSetResponse;
+import com.trainly.backend.exception.WorkoutPlanLimitExceededException;
 
 import jakarta.validation.Valid;
 
@@ -62,16 +65,19 @@ public class WorkoutController {
         }
 
         @PostMapping()
-        public ResponseEntity<Void> createWorkout(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody WorkoutPlanRequest request) {
+        public ResponseEntity<?> createWorkout(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody WorkoutPlanRequest request) {
 
                 UUID profileId = currentUser.getId(jwt);
 
-                WorkoutPlan workout = workoutPlanService.create(profileId, request);
-
-
-                return ResponseEntity
-                .created(URI.create("/api/v1/workouts/" + workout.getId()))
-                .build();
+                try {
+                        WorkoutPlan workout = workoutPlanService.create(profileId, request);
+                        return ResponseEntity
+                                .created(URI.create("/api/v1/workouts/" + workout.getId()))
+                                .build();
+                } catch (WorkoutPlanLimitExceededException e) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(Map.of("error", e.getMessage()));
+                }
         }
 
         @GetMapping("/{id}")
@@ -101,6 +107,21 @@ public class WorkoutController {
                 return ResponseEntity.ok(
                         workoutPlanService.getPublicWorkout(shareId)
                 );
+        }
+
+        @PostMapping("/public/{shareId}/weight")
+        public ResponseEntity<SharedWorkoutSetResponse> savePublicWorkoutSet(
+                @PathVariable UUID shareId,
+                @Valid @RequestBody SaveSharedWorkoutSetRequest request) {
+                return ResponseEntity.ok(workoutPlanService.savePublicWorkoutSet(shareId, request));
+        }
+
+        @GetMapping("/public/{shareId}/values")
+        public ResponseEntity<Map<String, List<SharedWorkoutSetResponse>>> getPublicWorkoutSetValues(
+                @PathVariable UUID shareId,
+                @RequestParam UUID dayId) {
+                return ResponseEntity.ok(Map.of(
+                        "values", workoutPlanService.getPublicWorkoutSetValues(shareId, dayId)));
         }
 
         @DeleteMapping("/{id}")
