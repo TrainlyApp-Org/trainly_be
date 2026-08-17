@@ -4,6 +4,8 @@ import com.trainly.backend.dto.AdminAccountResponse;
 import com.trainly.backend.dto.AdminAccountsPageResponse;
 import com.trainly.backend.dto.WorkoutPlanDetailsResponse;
 import com.trainly.backend.entity.Profile;
+import com.trainly.backend.entity.BillingSubscription;
+import com.trainly.backend.repository.BillingSubscriptionRepository;
 import com.trainly.backend.repository.ProfileRepository;
 import com.trainly.backend.repository.WorkoutPlanRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class AdminService {
     private final ProfileRepository profileRepository;
     private final WorkoutPlanRepository workoutPlanRepository;
+    private final BillingSubscriptionRepository billingSubscriptionRepository;
 
     @Transactional(readOnly = true)
     public AdminAccountsPageResponse getAccounts(int page, int size, String query) {
@@ -37,9 +40,13 @@ public class AdminService {
                 .map(profile -> toResponse(profile,
                         workoutPlanRepository.countByProfileId(profile.getId())))
                 .toList();
+        long premiumAccounts = profileRepository.countByPremiumTrue();
+        long stripePremiumAccounts = billingSubscriptionRepository.countByStatusIn(List.of("active", "trialing"));
+        long manualPremiumAccounts = Math.max(0, premiumAccounts - stripePremiumAccounts);
         return new AdminAccountsPageResponse(accounts, profiles.getNumber(), profiles.getSize(),
                 profiles.getTotalElements(), profiles.getTotalPages(),
-                profileRepository.count(), profileRepository.countByPremiumTrue(), workoutPlanRepository.count());
+                profileRepository.count(), premiumAccounts, stripePremiumAccounts,
+                manualPremiumAccounts, workoutPlanRepository.count());
     }
 
     @Transactional(readOnly = true)
@@ -63,6 +70,11 @@ public class AdminService {
     public AdminAccountResponse updatePremium(UUID profileId, boolean premium) {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
+        BillingSubscription billing = billingSubscriptionRepository.findByProfileId(profileId).orElse(null);
+        if (billing != null && isActiveStripeSubscription(billing)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "L'account è gestito da Stripe: modifica o annulla l'abbonamento invece di cambiare manualmente il piano");
+        }
         profile.setPremium(premium);
         profile.setUpdatedAt(OffsetDateTime.now());
         profileRepository.save(profile);
@@ -70,8 +82,17 @@ public class AdminService {
     }
 
     private AdminAccountResponse toResponse(Profile profile, long workoutCount) {
+        BillingSubscription billing = billingSubscriptionRepository.findByProfileId(profile.getId()).orElse(null);
         return new AdminAccountResponse(profile.getId(), profile.getUsername(),
                 profile.getFullName(), profile.isPremium(), profile.getCreatedAt(),
-                profile.getUpdatedAt(), workoutCount);
+                profile.getUpdatedAt(), workoutCount,
+                billing != null && isActiveStripeSubscription(billing),
+                billing == null ? null : billing.getStatus(),
+                billing != null && billing.isCancelAtPeriodEnd());
+    }
+
+    private boolean isActiveStripeSubscription(BillingSubscription billing) {
+        return billing.getStripeSubscriptionId() != null
+                && ("active".equals(billing.getStatus()) || "trialing".equals(billing.getStatus()));
     }
 }

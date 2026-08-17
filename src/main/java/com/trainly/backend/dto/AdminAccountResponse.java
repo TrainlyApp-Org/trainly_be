@@ -12,4 +12,7 @@ public record AdminAccountResponse(
         @JsonProperty("is_premium") boolean premium,
         @JsonProperty("created_at") OffsetDateTime createdAt,
         @JsonProperty("updated_at") OffsetDateTime updatedAt,
-        @JsonProperty("workout_count") long workoutCount) {}
+        @JsonProperty("workout_count") long workoutCount,
+        @JsonProperty("billing_managed") boolean billingManaged,
+        @JsonProperty("billing_status") String billingStatus,
+        @JsonProperty("cancel_at_period_end") boolean cancelAtPeriodEnd) {}

@@ -34,6 +34,9 @@ public class Exercise {
     @Column(nullable = false)
     private String name;
 
+    @Column(name = "name_it")
+    private String nameIt;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
@@ -42,6 +45,9 @@ public class Exercise {
 
 
     private String description;
+
+    @Column(name = "description_it")
+    private String descriptionIt;
 
 
     @Builder.Default
@@ -62,6 +68,16 @@ public class Exercise {
     @OneToMany(mappedBy = "exercise")
     @Builder.Default
     private List<WorkoutDayExercise> workoutDayExercises = new ArrayList<>();
+
+    @Transient
+    public String getDisplayName() {
+        return nameIt != null && !nameIt.isBlank() ? nameIt : name;
+    }
+
+    @Transient
+    public String getDisplayDescription() {
+        return descriptionIt != null && !descriptionIt.isBlank() ? descriptionIt : description;
+    }
 
 
 }

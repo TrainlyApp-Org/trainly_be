@@ -25,7 +25,15 @@ public class Category {
     @Column(nullable = false, unique = true)
     private String name;
 
+    @Column(name = "name_it")
+    private String nameIt;
+
     private String description;
 
     private String icon;
+
+    @Transient
+    public String getDisplayName() {
+        return nameIt != null && !nameIt.isBlank() ? nameIt : name;
+    }
 }

@@ -81,21 +81,23 @@ public class WorkoutController {
         }
 
         @GetMapping("/{id}")
-        public ResponseEntity<WorkoutPlanDetailsResponse> getWorkoutDetails(@PathVariable UUID id)
+        public ResponseEntity<WorkoutPlanDetailsResponse> getWorkoutDetails(
+                @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id)
         {
 
                 WorkoutPlanDetailsResponse response =
-                        workoutPlanService.getWorkoutDetails(id);
+                        workoutPlanService.getWorkoutDetails(id, currentUser.getId(jwt));
 
 
                 return ResponseEntity.ok(response);
         }
 
         @PostMapping("/{id}/share")
-        public ResponseEntity<ShareWorkoutResponse> createShareLink(@PathVariable UUID id)
+        public ResponseEntity<ShareWorkoutResponse> createShareLink(
+                @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id)
         {
 
-                ShareWorkoutResponse shareId = workoutPlanService.createShareLink(id);
+                ShareWorkoutResponse shareId = workoutPlanService.createShareLink(id, currentUser.getId(jwt));
 
                 return ResponseEntity.ok(shareId);
         }
@@ -125,8 +127,9 @@ public class WorkoutController {
         }
 
         @DeleteMapping("/{id}")
-        public ResponseEntity<Void> deleteWorkout(@PathVariable UUID id) {
-                workoutPlanService.deleteWorkout(id);
+        public ResponseEntity<Void> deleteWorkout(
+                @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+                workoutPlanService.deleteWorkout(id, currentUser.getId(jwt));
                 return ResponseEntity.noContent().build();
         }
 

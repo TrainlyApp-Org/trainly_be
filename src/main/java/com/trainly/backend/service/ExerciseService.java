@@ -53,8 +53,8 @@ public class ExerciseService {
 
         return ExerciseDto.builder()
                 .id(saved.getId())
-                .name(saved.getName())
-                .description(saved.getDescription())
+                .name(saved.getDisplayName())
+                .description(saved.getDisplayDescription())
                 .categoryId(saved.getCategory().getId())
                 .build();
     }
@@ -72,10 +72,10 @@ public class ExerciseService {
 
         return ExerciseDto.builder()
                 .id(exercise.getId())
-                .name(exercise.getName())
-                .description(exercise.getDescription())
+                .name(exercise.getDisplayName())
+                .description(exercise.getDisplayDescription())
                 .categoryId(exercise.getCategory().getId())
-                .categoryName(exercise.getCategory().getName())
+                .categoryName(exercise.getCategory().getDisplayName())
                 .isCustom(exercise.isCustom())
                 .build();
     }

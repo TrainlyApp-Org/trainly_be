@@ -6,6 +6,8 @@ import com.trainly.backend.dto.ProfileResponse;
 import com.trainly.backend.dto.UpdateProfileRequest;
 import com.trainly.backend.dto.RefreshTokenRequest;
 import com.trainly.backend.dto.ChangePasswordRequest;
+import com.trainly.backend.dto.ForgotPasswordRequest;
+import com.trainly.backend.dto.ResetPasswordRequest;
 import com.trainly.backend.security.CurrentUser;
 import com.trainly.backend.service.ProfileService;
 import com.trainly.backend.service.UserService;
@@ -36,7 +38,10 @@ public class AuthController {
                     request.getEmail(),
                     request.getPassword(),
                     request.getUsername(),
-                    request.getFullName()
+                    request.getFullName(),
+                    request.isAdultConfirmed(),
+                    request.isTermsAccepted(),
+                    request.isPrivacyAcknowledged()
             );
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (IllegalArgumentException e) {
@@ -74,6 +79,30 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        try {
+            userService.requestPasswordReset(request.getEmail());
+        } catch (Exception ignored) {
+            // Do not reveal whether an account exists for the supplied email address.
+        }
+        return ResponseEntity.ok(Map.of(
+                "message", "Se l'indirizzo è registrato, riceverai un'email con le istruzioni."
+        ));
+    }
+
+    @PutMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        try {
+            userService.resetPassword(request.getAccessToken(), request.getNewPassword());
+            return ResponseEntity.ok(Map.of("message", "Password aggiornata correttamente."));
+        } catch (RestClientResponseException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Il link di recupero non è valido o è scaduto. Richiedine uno nuovo."
+            ));
         }
     }
 

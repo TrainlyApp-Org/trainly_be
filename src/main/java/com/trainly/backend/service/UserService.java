@@ -9,17 +9,21 @@ import org.springframework.web.client.RestClient;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.time.OffsetDateTime;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final RestClient restClient;
+    private final String passwordResetRedirectUrl;
 
     public UserService(UserRepository userRepository, 
                        @Value("${supabase.url}") String supabaseUrl, 
-                       @Value("${supabase.anon-key}") String supabaseAnonKey) {
+                       @Value("${supabase.anon-key}") String supabaseAnonKey,
+                       @Value("${app.frontend-url}") String frontendUrl) {
         this.userRepository = userRepository;
+        this.passwordResetRedirectUrl = frontendUrl.replaceAll("/+$", "") + "/reset-password";
         this.restClient = RestClient.builder()
                 .baseUrl(supabaseUrl + "/auth/v1")
                 .defaultHeader("apikey", supabaseAnonKey)
@@ -28,7 +32,14 @@ public class UserService {
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> registerUser(String email, String password, String username, String fullName) {
+    public Map<String, Object> registerUser(
+            String email,
+            String password,
+            String username,
+            String fullName,
+            boolean adultConfirmed,
+            boolean termsAccepted,
+            boolean privacyAcknowledged) {
         if (username != null && !username.trim().isEmpty() && userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException("Username already exists.");
         }
@@ -38,7 +49,7 @@ public class UserService {
         requestBody.put("email", email);
         requestBody.put("password", password);
         
-        Map<String, String> userMetadata = new HashMap<>();
+        Map<String, Object> userMetadata = new HashMap<>();
         userMetadata.put(
                 "username",
                 username != null ? username : email.split("@")[0]
@@ -47,6 +58,11 @@ public class UserService {
                 "full_name",
                 fullName != null ? fullName : ""
         );
+        userMetadata.put("adult_confirmed", adultConfirmed);
+        userMetadata.put("terms_accepted", termsAccepted);
+        userMetadata.put("privacy_acknowledged", privacyAcknowledged);
+        userMetadata.put("legal_document_version", "1.0");
+        userMetadata.put("legal_accepted_at", OffsetDateTime.now().toString());
 
         requestBody.put("data", userMetadata);
 
@@ -129,6 +145,32 @@ public class UserService {
         }
 
         return supabaseResponse;
+    }
+
+    public void requestPasswordReset(String email) {
+        restClient.post()
+                .uri("/recover")
+                .header("X-Supabase-Redirect-To", passwordResetRedirectUrl)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("email", email.trim()))
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> resetPassword(String recoveryAccessToken, String newPassword) {
+        Map<String, Object> response = restClient.put()
+                .uri("/user")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + recoveryAccessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("password", newPassword))
+                .retrieve()
+                .body(Map.class);
+
+        if (response == null) {
+            throw new IllegalArgumentException("Unable to reset password");
+        }
+        return response;
     }
 
     @SuppressWarnings("unchecked")

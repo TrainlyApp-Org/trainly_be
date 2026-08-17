@@ -26,7 +26,7 @@ public class CategoryService {
     private CategoryDto convertToDto(Category category) {
         return CategoryDto.builder()
                 .id(category.getId())
-                .name(category.getName())
+                .name(category.getDisplayName())
                 .description(category.getDescription())
                 .icon(category.getIcon())
                 .build();

@@ -31,6 +31,10 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/refresh",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password",
+                                "/api/v1/health/live",
+                                "/api/v1/billing/webhook",
                                 "/api/v1/exercises/categories",
                                 "/api/v1/workouts/public/**",
                                 "/error"
@@ -53,11 +57,16 @@ public class SecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(
-                List.of("http://localhost:5173",
-                        "http://192.168.1.180:5173"
-                )
+        String frontendUrl = System.getenv().getOrDefault(
+                "FRONTEND_URL",
+                "http://localhost:5173"
         );
+
+        configuration.setAllowedOrigins(List.of(
+                frontendUrl,
+                "http://localhost:5173",
+                "http://192.168.1.180:5173"
+        ));
 
         configuration.setAllowedMethods(
                 List.of(
@@ -75,6 +84,7 @@ public class SecurityConfig {
         );
 
         configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(List.of("Authorization"));
 
 
         UrlBasedCorsConfigurationSource source =

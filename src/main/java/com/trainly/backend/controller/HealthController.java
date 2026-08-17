@@ -17,6 +17,11 @@ public class HealthController {
 
     private final JdbcTemplate jdbcTemplate;
 
+    @GetMapping("/live")
+    public ResponseEntity<Map<String, String>> checkLiveness() {
+        return ResponseEntity.ok(Map.of("status", "UP"));
+    }
+
     @GetMapping
     public ResponseEntity<Map<String, Object>> checkHealth() {
         Map<String, Object> health = new HashMap<>();

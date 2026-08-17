@@ -3,6 +3,8 @@ package com.trainly.backend.controller;
 import com.trainly.backend.dto.*;
 import com.trainly.backend.security.AdminAccess;
 import com.trainly.backend.service.AdminService;
+import com.trainly.backend.service.BillingService;
+import com.stripe.exception.StripeException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class AdminController {
     private final AdminAccess adminAccess;
     private final AdminService adminService;
+    private final BillingService billingService;
 
     @GetMapping("/status")
     public Map<String, Boolean> status(@AuthenticationPrincipal Jwt jwt) {
@@ -55,5 +58,14 @@ public class AdminController {
             @RequestBody UpdatePremiumRequest request) {
         adminAccess.requireAdmin(jwt);
         return ResponseEntity.ok(adminService.updatePremium(profileId, request.isPremium()));
+    }
+
+    @PostMapping("/accounts/{profileId}/subscription/cancel")
+    public ResponseEntity<AdminAccountResponse> cancelSubscription(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID profileId) throws StripeException {
+        adminAccess.requireAdmin(jwt);
+        billingService.cancelAtPeriodEnd(profileId);
+        return ResponseEntity.ok(adminService.getAccount(profileId));
     }
 }

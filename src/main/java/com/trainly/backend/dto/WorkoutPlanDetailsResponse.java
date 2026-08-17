@@ -78,11 +78,11 @@ public class WorkoutPlanDetailsResponse {
                                     );
 
                                     exercise.setName(
-                                            item.getExercise().getName()
+                                            item.getExercise().getDisplayName()
                                     );
 
                                     exercise.setDescription(
-                                            item.getExercise().getDescription()
+                                            item.getExercise().getDisplayDescription()
                                     );
 
                                     exercise.setSets(

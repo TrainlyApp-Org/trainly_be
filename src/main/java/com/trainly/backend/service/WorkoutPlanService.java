@@ -151,10 +151,10 @@ public class WorkoutPlanService {
         }
 
         @Transactional(readOnly = true)
-        public WorkoutPlanDetailsResponse getWorkoutDetails(UUID id) {
+        public WorkoutPlanDetailsResponse getWorkoutDetails(UUID id, UUID profileId) {
 
                 WorkoutPlan workoutPlan =
-                        workoutPlanRepository.findById(id)
+                        workoutPlanRepository.findByIdAndProfileId(id, profileId)
                         .orElseThrow(() ->
                                 new RuntimeException("Workout not found")
                         );
@@ -164,9 +164,9 @@ public class WorkoutPlanService {
         }
 
         @Transactional
-        public ShareWorkoutResponse createShareLink(UUID workoutId) {
+        public ShareWorkoutResponse createShareLink(UUID workoutId, UUID profileId) {
 
-                WorkoutPlan workout = workoutPlanRepository.findById(workoutId)
+                WorkoutPlan workout = workoutPlanRepository.findByIdAndProfileId(workoutId, profileId)
                         .orElseThrow(() -> new RuntimeException("Workout not found"));
 
                 // TODO controllo premium
@@ -243,23 +243,17 @@ public class WorkoutPlanService {
         }
 
         @Transactional
-        public void deleteWorkout(UUID id) {
-                if (!workoutPlanRepository.existsById(id)) {
-                        throw new EntityNotFoundException("Workout not found");
-                }
-
-                workoutPlanRepository.deleteById(id);
+        public void deleteWorkout(UUID id, UUID profileId) {
+                WorkoutPlan workout = workoutPlanRepository.findByIdAndProfileId(id, profileId)
+                        .orElseThrow(() -> new EntityNotFoundException("Workout not found"));
+                workoutPlanRepository.delete(workout);
         }
 
         @Transactional
         public WorkoutPlanDetailsResponse update(UUID workoutId, UUID profileId, WorkoutPlanRequest request) {
 
-                WorkoutPlan plan = workoutPlanRepository.findById(workoutId)
+                WorkoutPlan plan = workoutPlanRepository.findByIdAndProfileId(workoutId, profileId)
                         .orElseThrow(() -> new RuntimeException("Workout not found"));
-
-                if (!plan.getProfile().getId().equals(profileId)) {
-                        throw new RuntimeException("Unauthorized");
-                }
 
                 plan.setName(request.getName());
                 plan.setDescription(request.getDescription());

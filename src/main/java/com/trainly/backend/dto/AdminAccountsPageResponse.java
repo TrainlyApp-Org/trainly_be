@@ -10,5 +10,7 @@ public record AdminAccountsPageResponse(
         int totalPages,
         long totalAccounts,
         long premiumAccounts,
+        long stripePremiumAccounts,
+        long manualPremiumAccounts,
         long workoutPlans
 ) {}
