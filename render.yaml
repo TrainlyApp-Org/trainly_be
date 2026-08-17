@@ -3,6 +3,7 @@ services:
     name: trainly-backend
     runtime: docker
     plan: free
+    region: frankfurt
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/v1/health/live
